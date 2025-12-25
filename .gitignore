@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.log
+.venv/
+.env
+*_debug.html
+*_page_source.html
+d:/Pulsegen/Slack_reviews.json
+d:/Pulsegen/Slack_reviews_v2.json
+google_dork_debug.html

@@ -1,0 +1,54 @@
+WEB SCRAPING CHALLENGES & SOLUTIONS REPORT
+==========================================
+
+1. ANTI-BOT PROTECTION (Cloudflare/WAF)
+----------------------------------------
+Issue: 
+Requests were being blocked or challenged by Cloudflare when accessing G2 directly or using standard Selenium drivers.
+
+Solution:
+- Implemented `undetected-chromedriver`, which patches the ChromeDriver binary to mask Selenium fingerprints (e.g., `cdc_` variables).
+- Added `BrowserManager` class to centralize stealth settings (no-sandbox, disable-dev-shm-usage).
+- Random sleep intervals (`time.sleep(random.uniform(2, 5))`) added between actions to mimic human behavior.
+
+2. NAVIGATION & SEARCH
+----------------------------------------
+Issue:
+Using the internal search bars on G2/Capterra often triggered captchas or required complex interaction sequences.
+
+Solution:
+- "Google Dorking": Instead of searching on the site, we search Google (e.g., `Slack reviews site:g2.com`).
+- We scrape the Google results to find the direct review page link.
+- Added a fallback: If Google search fails, construct the URL directly (`g2.com/products/slack/reviews`).
+
+3. FRAGILE CSS SELECTORS (Blank Data)
+----------------------------------------
+Issue:
+Initial attempts returned blank JSON files. The scrapers relied on CSS classes like `.review-card` or `.paper` which G2 generates dynamically or changes frequently (e.g., `x-sidebar-reviews`).
+
+Solution:
+- Analyzed the full page HTML (`g2_page_source.html`) and discovered Schema.org structured data.
+- Switched to robust XPath assertions based on `itemprop` attributes, which are required for SEO and unlikely to change:
+  - Container: `//article[@itemprop='review']`
+  - Body: `.//div[@itemprop='reviewBody']`
+  - Rating: `.//span[@itemprop='reviewRating']/meta[@itemprop='ratingValue']`
+  
+4. DATE PARSING VARIATIONS
+----------------------------------------
+Issue:
+Dates appeared in different formats (`Oct 25, 2023` vs `2023-10-25`), causing the date range filter to crash or fail.
+
+Solution:
+- Created a `parse_date` utility function that tries multiple formats:
+  - ISO (`%Y-%m-%d`) - Found in meta tags (preferred).
+  - US Long (`%B %d, %Y`) - Found in visible text.
+- Added a fallback to search for `time` elements if the meta tag is missing.
+
+5. MAINTAINABILITY
+----------------------------------------
+Issue:
+The logic grew into a large, monolithic 400+ line script that was hard to debug.
+
+Solution:
+- Refactored into a modular package `scraper_v2`.
+- Separated concerns: `main.py` (orchestration), `browser.py` (driver), `scrapers/` (site logic).
